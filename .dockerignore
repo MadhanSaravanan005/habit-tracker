@@ -1,0 +1,11 @@
+node_modules
+**/node_modules
+.env
+.DS_Store
+.git
+build
+dist
+frontend/build
+**/npm-debug.log
+Dockerfile
+README.md
