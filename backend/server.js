@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const path = require("path");
+const { createProxyMiddleware } = require('http-proxy-middleware');
 
 dotenv.config();
 const app = express();
@@ -46,10 +47,34 @@ app.get("/health", (req, res) => {
 
 app.use("/api/habits", require("./routes/habitRoutes"));
 
-// Serve the main app for all other routes
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/index.html'));
-});
+// In development/Railway, proxy to React dev server
+if (process.env.NODE_ENV !== 'production') {
+  // Proxy to React dev server
+  app.use('/', createProxyMiddleware({
+    target: 'http://localhost:3000',
+    changeOrigin: true,
+    ws: true, // Enable websocket proxying for hot reload
+    onError: (err, req, res) => {
+      console.log('Proxy error:', err.message);
+      // Fallback: serve a simple message if React dev server isn't ready
+      res.status(503).send(`
+        <html>
+          <body>
+            <h2>React Dev Server Starting...</h2>
+            <p>Please wait a moment for the React development server to start.</p>
+            <script>setTimeout(() => location.reload(), 3000);</script>
+          </body>
+        </html>
+      `);
+    }
+  }));
+} else {
+  // Production: serve static files
+  app.use(express.static(path.join(__dirname, '../public')));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/index.html'));
+  });
+}
 
 // If this file is run directly (node backend/server.js), start a server for local development.
 if (require.main === module) {

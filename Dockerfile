@@ -1,33 +1,26 @@
-# Multi-stage build for React app
-FROM node:18 as frontend-build
-
-WORKDIR /app/frontend
-COPY frontend/package*.json ./
-# install all dependencies (including dev) so the frontend build can run
-# react-scripts and other build tools may be devDependencies or require
-# build toolchains not present in Alpine images
-RUN npm ci --silent
-COPY frontend/ ./
-RUN npm run build
-
-# Production stage
-FROM node:18-alpine
+# Development React + Backend for Railway
+FROM node:18
 
 WORKDIR /app
 
-# Copy and install backend dependencies
+# Copy package files and install dependencies
 COPY package*.json ./
-RUN npm ci --only=production --silent
+RUN npm install
 
-# Copy backend source
-COPY backend/ ./backend/
+# Copy frontend package files and install frontend dependencies
+COPY frontend/package*.json ./frontend/
+RUN cd frontend && npm install
 
-# Copy the built frontend from the previous stage
-COPY --from=frontend-build /app/frontend/build ./public
+# Copy all source code
+COPY . .
 
-# Create .env file in production
-RUN echo "NODE_ENV=production" > .env
+# Set environment variables for React dev server
+ENV BROWSER=none
+ENV GENERATE_SOURCEMAP=false
+ENV REACT_APP_API_URL=/api
 
+# Expose port 5000 (backend will proxy to React on 3000)
 EXPOSE 5000
 
-CMD ["node", "backend/server.js"]
+# Start both services using the package.json start script
+CMD ["npm", "start"]

@@ -3,6 +3,7 @@
     "builder": "dockerfile"
   },
   "deploy": {
-    "healthcheckPath": "/api/test"
+    "healthcheckPath": "/api/test",
+    "restartPolicyType": "on_failure"
   }
 }
