@@ -2,6 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
+const path = require("path");
 
 console.log("Starting Habit Tracker Server...");
 
@@ -9,6 +10,9 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 app.use(cors());
+
+// Serve static files from React build
+app.use(express.static(path.join(__dirname, 'public')));
 
 console.log("Middleware configured");
 
@@ -59,54 +63,23 @@ try {
 // For now, serve a simple React development page
 app.get('/', (req, res) => {
   console.log("Root endpoint called");
-  res.send(`
-    <html>
-      <head>
-        <title>Habit Tracker - Development Mode</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 50px; }
-          .container { max-width: 800px; margin: 0 auto; }
-          .status { background: #e8f5e8; padding: 20px; border-radius: 5px; margin: 20px 0; }
-          .links { background: #f0f8ff; padding: 20px; border-radius: 5px; }
-          a { color: #007bff; text-decoration: none; margin-right: 20px; }
-          a:hover { text-decoration: underline; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <h1>🎯 Habit Tracker - Development Mode</h1>
-          <div class="status">
-            <h3>✅ Backend Server is Running!</h3>
-            <p>Your Express.js backend is working properly.</p>
-          </div>
-          <div class="links">
-            <h3>🔗 Available Endpoints:</h3>
-            <p>
-              <a href="/api/test">API Health Check</a>
-              <a href="/api/habits">Habits API</a>
-              <a href="/health">Health Status</a>
-            </p>
-          </div>
-          <div class="status">
-            <h3>📝 Next Steps:</h3>
-            <p>1. Backend is working ✅</p>
-            <p>2. Add React frontend integration</p>
-            <p>3. Connect to Railway with environment variables</p>
-          </div>
-        </div>
-      </body>
-    </html>
-  `);
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Catch all other routes
+// Catch all other routes and serve React app
 app.get('*', (req, res) => {
-  console.log("404 route called for:", req.path);
-  res.status(404).json({ 
-    error: 'Route not found',
-    path: req.path,
-    availableRoutes: ['/api/test', '/api/habits', '/health', '/']
-  });
+  console.log("Catch-all route called for:", req.path);
+  // Don't serve React app for API routes
+  if (req.path.startsWith('/api/')) {
+    res.status(404).json({ 
+      error: 'API route not found',
+      path: req.path,
+      availableRoutes: ['/api/test', '/api/habits', '/health']
+    });
+  } else {
+    // Serve React app for all other routes
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  }
 });
 
 console.log("Routes configured");

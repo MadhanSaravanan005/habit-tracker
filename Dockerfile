@@ -1,14 +1,25 @@
-# Simple backend-only deployment for Railway
+# Build React frontend and serve with Express backend
 FROM node:18
 
 WORKDIR /app
 
-# Copy backend package files and install backend dependencies
+# Copy and install backend dependencies
 COPY backend/package*.json ./backend/
 RUN cd backend && npm install
 
-# Copy backend source code
+# Copy and install frontend dependencies  
+COPY frontend/package*.json ./frontend/
+RUN cd frontend && npm install
+
+# Copy all source code
 COPY backend/ ./backend/
+COPY frontend/ ./frontend/
+
+# Build the React frontend for production
+RUN cd frontend && npm run build
+
+# Copy built frontend to backend public folder
+RUN mkdir -p ./backend/public && cp -r ./frontend/build/* ./backend/public/
 
 # Expose port
 EXPOSE 5000
