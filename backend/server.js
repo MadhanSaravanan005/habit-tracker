@@ -3,7 +3,8 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const path = require("path");
-const { createProxyMiddleware } = require('http-proxy-middleware');
+
+console.log("Starting Habit Tracker Server...");
 
 dotenv.config();
 const app = express();
@@ -12,6 +13,8 @@ app.use(cors());
 
 // Serve static files from public folder
 app.use(express.static(path.join(__dirname, '../public')));
+
+console.log("Middleware configured");
 
 // MongoDB connection with Railway-friendly error handling
 const mongoUri = process.env.MONGO_URI || process.env.DATABASE_URL;
@@ -29,8 +32,11 @@ if (!mongoUri) {
     });
 }
 
+console.log("MongoDB setup complete");
+
 // Add a simple test route
 app.get("/api/test", (req, res) => {
+  console.log("API test endpoint called");
   const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
   res.json({ 
     message: "Habit Tracker Backend is working!", 
@@ -42,48 +48,105 @@ app.get("/api/test", (req, res) => {
 
 // Root health check
 app.get("/health", (req, res) => {
+  console.log("Health check endpoint called");
   res.status(200).json({ status: "healthy", uptime: process.uptime() });
 });
 
-// API routes - these must come BEFORE the proxy
-app.use("/api/habits", require("./routes/habitRoutes"));
-
-// Development mode: proxy non-API routes to React dev server
-if (process.env.NODE_ENV !== 'production') {
-  // Only proxy non-API routes to React dev server
-  app.use('/', createProxyMiddleware({
-    target: 'http://localhost:3000',
-    changeOrigin: true,
-    ws: true, // Enable websocket proxying for hot reload
-    filter: (pathname, req) => {
-      // Don't proxy API routes - let them be handled by Express
-      return !pathname.startsWith('/api') && !pathname.startsWith('/health');
-    },
-    onError: (err, req, res) => {
-      console.log('Proxy error:', err.message);
-      // Fallback: serve a simple message if React dev server isn't ready
-      if (!res.headersSent) {
-        res.status(503).send(`
-          <html>
-            <head><title>Starting React App</title></head>
-            <body style="font-family: Arial, sans-serif; text-align: center; margin-top: 50px;">
-              <h2>🚀 React Dev Server Starting...</h2>
-              <p>Please wait a moment for the React development server to start.</p>
-              <p><em>This page will refresh automatically in 3 seconds...</em></p>
-              <script>setTimeout(() => location.reload(), 3000);</script>
-            </body>
-          </html>
-        `);
-      }
-    }
-  }));
-} else {
-  // Production: serve static files
-  app.use(express.static(path.join(__dirname, '../public')));
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/index.html'));
-  });
+console.log("Loading habit routes...");
+try {
+  app.use("/api/habits", require("./routes/habitRoutes"));
+  console.log("Habit routes loaded successfully");
+} catch (err) {
+  console.error("Error loading habit routes:", err);
 }
+
+// For now, serve a simple React development page
+app.get('/', (req, res) => {
+  console.log("Root endpoint called");
+  res.send(`
+    <html>
+      <head>
+        <title>Habit Tracker - Development Mode</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 50px; }
+          .container { max-width: 800px; margin: 0 auto; }
+          .status { background: #e8f5e8; padding: 20px; border-radius: 5px; margin: 20px 0; }
+          .links { background: #f0f8ff; padding: 20px; border-radius: 5px; }
+          a { color: #007bff; text-decoration: none; margin-right: 20px; }
+          a:hover { text-decoration: underline; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>🎯 Habit Tracker - Development Mode</h1>
+          <div class="status">
+            <h3>✅ Backend Server is Running!</h3>
+            <p>Your Express.js backend is working properly.</p>
+          </div>
+          <div class="links">
+            <h3>🔗 Available Endpoints:</h3>
+            <p>
+              <a href="/api/test">API Health Check</a>
+              <a href="/api/habits">Habits API</a>
+              <a href="/health">Health Status</a>
+            </p>
+          </div>
+          <div class="status">
+            <h3>📝 Next Steps:</h3>
+            <p>1. Backend is working ✅</p>
+            <p>2. Add React frontend integration</p>
+            <p>3. Connect to Railway with environment variables</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `);
+});
+
+// Catch all other routes
+app.get('*', (req, res) => {
+  console.log("404 route called for:", req.path);
+  res.status(404).json({ 
+    error: 'Route not found',
+    path: req.path,
+    availableRoutes: ['/api/test', '/api/habits', '/health', '/']
+  });
+});
+
+console.log("Routes configured");
+
+const PORT = process.env.PORT || 5000;
+
+// Graceful shutdown handlers
+process.on('SIGTERM', () => {
+  console.log('👋 SIGTERM received. Shutting down gracefully...');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('👋 SIGINT received (Ctrl+C). Shutting down gracefully...');
+  process.exit(0);
+});
+
+console.log(`Starting server on port ${PORT}...`);
+
+const server = app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Habit Tracker Backend running on port ${PORT}`);
+  console.log(`🌐 Access at: http://localhost:${PORT}`);
+  console.log(`📊 Health check: http://localhost:${PORT}/health`);
+  console.log(`🔗 API test: http://localhost:${PORT}/api/test`);
+  console.log("✅ Server startup complete!");
+});
+
+server.on('error', (err) => {
+  console.error('❌ Server error:', err);
+  if (err.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use. Trying another port...`);
+    process.exit(1);
+  }
+});
+
+console.log("🎯 Habit Tracker initialization complete");
 
 // If this file is run directly (node backend/server.js), start a server for local development.
 if (require.main === module) {
