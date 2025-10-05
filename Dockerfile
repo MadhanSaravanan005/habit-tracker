@@ -1,26 +1,24 @@
-# Development React + Backend for Railway
+# Simple backend-only deployment for Railway
 FROM node:18
 
 WORKDIR /app
 
-# Copy package files and install dependencies
-COPY package*.json ./
-RUN npm install
+# Copy backend package files and install backend dependencies
+COPY backend/package*.json ./backend/
+RUN cd backend && npm install
 
-# Copy frontend package files and install frontend dependencies
-COPY frontend/package*.json ./frontend/
-RUN cd frontend && npm install
+# Copy backend source code
+COPY backend/ ./backend/
 
-# Copy all source code
-COPY . .
+# Copy public folder for static files
+COPY public/ ./public/
 
-# Set environment variables for React dev server
-ENV BROWSER=none
-ENV GENERATE_SOURCEMAP=false
-ENV REACT_APP_API_URL=/api
-
-# Expose port 5000 (backend will proxy to React on 3000)
+# Expose port
 EXPOSE 5000
 
-# Start both services using the package.json start script
-CMD ["npm", "start"]
+# Set environment variables
+ENV NODE_ENV=production
+ENV PORT=5000
+
+# Start the backend server
+CMD ["node", "backend/server.js"]
