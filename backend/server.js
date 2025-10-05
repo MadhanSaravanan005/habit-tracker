@@ -54,6 +54,18 @@ app.get('*', (req, res) => {
 // If this file is run directly (node backend/server.js), start a server for local development.
 if (require.main === module) {
   const port = process.env.PORT || 5000;
+  
+  // Add error handling for unhandled rejections
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    // Don't exit the process for unhandled rejections
+  });
+
+  process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
+    // Don't exit the process for uncaught exceptions in development
+  });
+
   const server = app.listen(port, '0.0.0.0', () => {
     console.log(`Habit Tracker Server running on port ${port}`);
     console.log(`Health check available at: http://localhost:${port}/api/test`);
