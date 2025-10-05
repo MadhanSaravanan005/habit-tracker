@@ -10,9 +10,6 @@ RUN cd backend && npm install
 # Copy backend source code
 COPY backend/ ./backend/
 
-# Copy public folder for static files
-COPY public/ ./public/
-
 # Expose port
 EXPOSE 5000
 

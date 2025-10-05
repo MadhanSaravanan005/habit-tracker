@@ -2,7 +2,6 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
-const path = require("path");
 
 console.log("Starting Habit Tracker Server...");
 
@@ -10,9 +9,6 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 app.use(cors());
-
-// Serve static files from public folder
-app.use(express.static(path.join(__dirname, '../public')));
 
 console.log("Middleware configured");
 
