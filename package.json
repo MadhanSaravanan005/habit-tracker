@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "start": "concurrently \"node backend/server.js\" \"npm run frontend\"",
-    "frontend": "cd frontend && cross-env BROWSER=none npm start",
+    "frontend": "cd frontend && cross-env BROWSER=none HOST=0.0.0.0 npm start",
     "backend": "node backend/server.js",
     "dev": "concurrently \"cd backend && node server.js\" \"cd frontend && npm start\""
   },

@@ -45,27 +45,36 @@ app.get("/health", (req, res) => {
   res.status(200).json({ status: "healthy", uptime: process.uptime() });
 });
 
+// API routes - these must come BEFORE the proxy
 app.use("/api/habits", require("./routes/habitRoutes"));
 
-// In development/Railway, proxy to React dev server
+// Development mode: proxy non-API routes to React dev server
 if (process.env.NODE_ENV !== 'production') {
-  // Proxy to React dev server
+  // Only proxy non-API routes to React dev server
   app.use('/', createProxyMiddleware({
     target: 'http://localhost:3000',
     changeOrigin: true,
     ws: true, // Enable websocket proxying for hot reload
+    filter: (pathname, req) => {
+      // Don't proxy API routes - let them be handled by Express
+      return !pathname.startsWith('/api') && !pathname.startsWith('/health');
+    },
     onError: (err, req, res) => {
       console.log('Proxy error:', err.message);
       // Fallback: serve a simple message if React dev server isn't ready
-      res.status(503).send(`
-        <html>
-          <body>
-            <h2>React Dev Server Starting...</h2>
-            <p>Please wait a moment for the React development server to start.</p>
-            <script>setTimeout(() => location.reload(), 3000);</script>
-          </body>
-        </html>
-      `);
+      if (!res.headersSent) {
+        res.status(503).send(`
+          <html>
+            <head><title>Starting React App</title></head>
+            <body style="font-family: Arial, sans-serif; text-align: center; margin-top: 50px;">
+              <h2>🚀 React Dev Server Starting...</h2>
+              <p>Please wait a moment for the React development server to start.</p>
+              <p><em>This page will refresh automatically in 3 seconds...</em></p>
+              <script>setTimeout(() => location.reload(), 3000);</script>
+            </body>
+          </html>
+        `);
+      }
     }
   }));
 } else {
