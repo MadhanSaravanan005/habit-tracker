@@ -1,9 +1,12 @@
 # Multi-stage build for React app
-FROM node:18-alpine as frontend-build
+FROM node:18 as frontend-build
 
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
-RUN npm ci --only=production --silent
+# install all dependencies (including dev) so the frontend build can run
+# react-scripts and other build tools may be devDependencies or require
+# build toolchains not present in Alpine images
+RUN npm ci --silent
 COPY frontend/ ./
 RUN npm run build
 
